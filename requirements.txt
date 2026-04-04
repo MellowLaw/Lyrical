@@ -1,0 +1,6 @@
+Flask==3.1.0
+Flask-Cors==6.0.0
+requests==2.33.0
+winsdk==1.0.0b10
+pyinstaller==6.19.0
+pywebview==5.1

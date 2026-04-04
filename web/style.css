@@ -1,0 +1,141 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: white;
+    height: 100vh;
+    overflow: hidden; /* Hide main scroll bar, let container manage it */
+    
+    --bg-color: #1c3d3a;
+    background: radial-gradient(circle at 50% 50%, var(--bg-color) 0%, #0d1b1a 100%);
+    transition: --bg-color 1.5s ease-out;
+}
+
+@property --bg-color {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #1c3d3a;
+}
+
+/* Particles Canvas */
+#glintCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+/* Song Info UI */
+.song-info {
+    position: fixed;
+    top: 40px;
+    left: 40px;
+    z-index: 10;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px 30px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.05);
+    
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.album-art {
+    width: 65px;
+    height: 65px;
+    border-radius: 12px;
+    object-fit: cover;
+    display: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.song-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.song-info .title {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 5px;
+}
+
+.song-info .artist {
+    font-size: 16px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Viewport for lyrics to mask out top/bottom nicely (optional but usually built into full height) */
+.lyrics-viewport {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 5;
+    /* Soft fade top and bottom using mask image */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+}
+
+/* Lyrics Area */
+.lyrics-container {
+    position: absolute;
+    top: 0;
+    left: 10vw;
+    right: 10vw;
+    display: flex;
+    flex-direction: column;
+    padding-top: 50vh; /* Start halfway down */
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); /* Smooth snap */
+}
+
+@media screen and (min-width: 768px) {
+    .lyrics-container {
+        left: 20vw;
+        right: 20vw;
+    }
+}
+
+.lyric-line {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.3;
+    padding: 15px 0;
+    transition: all 0.5s ease-out;
+    cursor: default;
+    
+    /* Default inactive (upcoming) */
+    color: rgba(255, 255, 255, 0.35);
+    transform: scale(0.95);
+    transform-origin: left center;
+    filter: blur(1px);
+}
+
+.lyric-line.active {
+    color: rgba(255, 255, 255, 0.4);
+    transform: scale(1.1);
+    filter: blur(0px);
+}
+
+.lyric-line.past {
+    color: rgba(255, 255, 255, 0.15);
+    transform: scale(0.9);
+    filter: blur(2px);
+}
+

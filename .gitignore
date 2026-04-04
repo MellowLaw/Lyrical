@@ -1,0 +1,29 @@
+# Python virtual environment — never commit this, it's hundreds of MB
+venv/
+.venv/
+env/
+
+# PyInstaller build output — not needed in source control
+build/
+dist/
+*.spec
+
+# Scratch/debug test files
+test_*.py
+out.txt
+
+# Python bytecode cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo

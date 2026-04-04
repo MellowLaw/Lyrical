@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lyrical</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Canvas for glowing particle elements -->
+    <canvas id="glintCanvas"></canvas>
+    
+    <div class="song-info" id="songInfo">
+        <img id="albumArt" class="album-art" src="" style="display: none;" />
+        <div class="song-details">
+            <div class="title" id="songTitle">Play some music...</div>
+            <div class="artist" id="songArtist">Waiting for player</div>
+        </div>
+    </div>
+    
+    <!-- lyrics container that will be translated vertically -->
+    <div class="lyrics-viewport">
+        <div class="lyrics-container" id="lyricsContainer">
+            <!-- Lyrics will be injected here via javascript -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
