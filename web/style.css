@@ -9,10 +9,21 @@ body {
     color: white;
     height: 100vh;
     overflow: hidden; /* Hide main scroll bar, let container manage it */
-    
-    --bg-color: #1c3d3a;
-    background: radial-gradient(circle at 50% 50%, var(--bg-color) 0%, #0d1b1a 100%);
-    transition: --bg-color 1.5s ease-out;
+    background-color: #050505; /* Deep fallback base */
+}
+
+/* massive blurred apple-music style background */
+.blurred-bg {
+    position: fixed;
+    top: -15%;
+    left: -15%;
+    width: 130vw;
+    height: 130vh;
+    background-size: cover;
+    background-position: center;
+    filter: blur(120px) brightness(0.4) saturate(1.8);
+    z-index: -5; /* Push strictly behind EVERYTHING */
+    transition: background-image 1s ease-in-out;
 }
 
 @property --bg-color {

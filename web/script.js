@@ -301,6 +301,7 @@ async function fetchCurrentSong() {
             if (data.thumbnail) {
                 albumArt.src = data.thumbnail;
                 albumArt.style.display = 'block';
+                document.getElementById('blurredBackground').style.backgroundImage = `url('${data.thumbnail}')`;
                 albumArt.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
@@ -358,11 +359,7 @@ async function fetchCurrentSong() {
                         dominantRGB = { r: data[0], g: data[1], b: data[2] };
                     }
                     
-                    // Now set the colors dynamically
-                    let bgR = Math.floor(dominantRGB.r * 0.35);
-                    let bgG = Math.floor(dominantRGB.g * 0.35);
-                    let bgB = Math.floor(dominantRGB.b * 0.35);
-                    document.body.style.setProperty('--bg-color', `rgb(${bgR}, ${bgG}, ${bgB})`);
+                    // The massive background is handled by the blurred div behind the canvas.
                     
                     // Make the glint and particles perfectly match the dominant color, but brighter
                     let accentR = Math.min(255, Math.floor(dominantRGB.r * 1.5 + 40));
@@ -372,7 +369,7 @@ async function fetchCurrentSong() {
                 };
             } else {
                 albumArt.style.display = 'none';
-                document.body.style.setProperty('--bg-color', '#1c3d3a');
+                document.getElementById('blurredBackground').style.backgroundImage = 'none';
                 currentAccentColor = '180, 255, 230'; // Default teal glint
             }
             
