@@ -1,36 +1,76 @@
-# Lyrical 🎵
+<div align="center">
 
-A premium Windows Desktop lyrics viewer that automatically synchronizes with exactly what you are listening to on your PC. It hooks directly into the Windows Media API natively, ensuring zero-delay tracking across Spotify, Apple Music, and local media players, displaying synchronized lyrics with a dynamic, highly polished aesthetic.
+# 🎵 Lyrical
 
-![Lyrical Demo](demo.png)
+**Premium Desktop Lyrics Experience for Windows**
 
-## Features 🌟
-- **Real-time Engine**: Hooks natively to your OS without needing Spotify/Apple API tokens or developer setups.
-- **Dynamic Styling**: Automatically extracts a saturated color palette from the currently playing album art and applies it globally to the application.
-- **Micro-Animations**: Smooth, karaoke-style letter sweep gradients with interactive glowing particle emitters matching the lyrics location.
-- **Zero Configuration**: Packaged as a single local Windows Executable.
+[![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 
-## Technical Notes & Limitations ⚠️
-Lyrical was built to look like a premium corporate app without the corporate budget!
-- **Line-by-Line vs Word-for-Word**: Lyrical pulls lyrics dynamically via the free, open-source [LRCLIB](https://lrclib.net/) database. Because this is a free community API rather than a multi-million dollar corporate ecosystem (like MusixMatch used by Apple/Spotify), the lyrics are provided with timestamps for the **start of the line**, rather than timestamped per-syllable.
-- Our JavaScript engine extrapolates the singing speed based on standard phonetic rhythms to sweep a glint across the text. Because it's mathematically guessing the exact word the singer is on, it's not a 100% physically accurate karaoke machine — but for a beautiful desk-side lyric viewer, it's incredibly accurate and looks amazing!
+---
 
-## How to Run 🚀
-**Option 1: Using the Executable (Easy)**
-1. Download `Lyrical.exe` from the latest Release.
-2. Double-click it. It will open its own dedicated app window!
+Lyrical is a high-end Windows application that transforms your desktop into a beautiful, synchronized lyric display. It hooks directly into the Windows Media Layer to provide zero-configuration tracking for almost any music player.
 
-**Option 2: Running Source Code**
-1. Ensure Python 3.10+ is installed.
-2. Install dependencies:
+[**Download Latest Release**](https://github.com/YOUR_USERNAME/YOUR_REPO/releases) • [**Report Bug**](https://github.com/YOUR_USERNAME/YOUR_REPO/issues)
+
+<img src="demo.png" alt="Lyrical Demo" width="800" style="border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);">
+
+</div>
+
+## ✨ Key Features
+
+- **🎯 Native Universal Sync**: No API tokens or Spotify developer setups required. If Windows says it's playing, Lyrical shows it.
+- **🎨 Dynamic Color Engine**: Automatically samples the dominant colors of your album art to create a saturated, immersive atmosphere.
+- **✨ Apple-Grade Glassmorphism**: Stunning "Liquid Glass" UI with high-saturation blurs and depth-based reflections.
+- **🔥 Particle Emitters**: Interactive glowing particles that emerge from the lyrics as they are sung.
+- **📱 Dual-Mode Layout**: Switch instantly between the immersive **Apple Layout** and the classic, clean **Spotify Layout**.
+
+---
+
+## 🛠️ How It Works
+
+### The Magic of the Sync
+Lyrical doesn't just display text; it interprets it. Using the open-source [LRCLIB](https://lrclib.net/) database, the app fetches high-quality synced lyrics. 
+
+Our custom **Phonetic Extrapolation Engine** then calculates the likely singing speed of each word. While it's mathematically "guessing" the rhythm between lines, the result is a smooth, professional karaoke sweep that feels alive.
+
+### Security & Privacy 🔒
+- **100% Local**: No personal data, passwords, or music history ever leaves your machine.
+- **Secure Backend**: The internal communication is restricted via CORS to ensure only the Lyrical window can talk to the backend.
+
+---
+
+## 🚀 Getting Started
+
+### Option 1: Standalone (Recommended)
+1. Download `Lyrical.exe` from the [Releases](https://github.com/YOUR_USERNAME/YOUR_REPO/releases) page.
+2. Run it. That's it!
+
+### Option 2: From Source
+1. **Clone the repo**:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+   ```
+2. **Install requirements**:
    ```bash
    pip install -r requirements.txt
    ```
-3. Run the backend engine:
+3. **Launch**:
    ```bash
    python backend.py
    ```
 
-## Stack
-- **Backend**: Python (Flask, `winsdk` for system media control, `pywebview` for the native window wrapper).
-- **Frontend**: Vanilla HTML/JS, CSS3 Variables, Canvas-based particle rendering.
+---
+
+## 🏗️ Built With
+
+- **Backend**: Python (Flask, Windows SDK, PyWebView)
+- **Frontend**: Vanilla JS, HTML5 Canvas, Modern CSS3
+- **Data Source**: LRCLIB Community API
+
+---
+
+<div align="center">
+  Made with ❤️ by Lawrence
+</div>

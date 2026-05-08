@@ -4,31 +4,177 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lyrical</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Massive blurred album art background -->
     <div id="blurredBackground" class="blurred-bg"></div>
-    
+
     <!-- Canvas for glowing particle elements -->
     <canvas id="glintCanvas"></canvas>
-    
-    <div class="song-info" id="songInfo">
-        <img id="albumArt" class="album-art" src="" style="display: none;" />
-        <div class="song-details">
-            <div class="title" id="songTitle">Play some music...</div>
-            <div class="artist" id="songArtist">Waiting for player</div>
+
+    <!-- TOP MINI PLAYER (Visible only when sidebar is collapsed) -->
+    <div class="top-mini-player hidden" id="topMiniPlayer">
+        <img id="miniAlbumArt" class="mini-album-art" src="" style="display: none;" />
+        <div class="mini-song-details">
+            <div class="title" id="miniSongTitle">Play some music...</div>
+            <div class="artist" id="miniSongArtist">Waiting for player</div>
         </div>
+        <div class="mini-media-controls">
+            <button id="miniBtnPlayPause" class="media-btn play-btn mini-btn">
+                <svg id="miniIconPlay" viewBox="0 0 384 512" height="1em" xmlns="http://www.w3.org/2000/svg" fill="currentColor" style="display: none;"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"></path></svg>
+                <svg id="miniIconPause" viewBox="0 0 320 512" height="1em" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M48 64C21.5 64 0 85.5 0 112V400c0 26.5 21.5 48 48 48H80c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H48zm192 0c-26.5 0-48 21.5-48 48V400c0 26.5 21.5 48 48 48h32c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H240z"></path></svg>
+            </button>
+            <button id="miniBtnNext" class="media-btn mini-btn">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M4.5 4.5 C 3.5 4 2.5 4.7 2.5 5.8 V 18.2 C 2.5 19.3 3.5 20 4.5 19.5 L 12.5 13.3 C 13.3 12.7 13.3 11.3 12.5 10.7 Z" /><path d="M13.5 4.5 C 12.5 4 11.5 4.7 11.5 5.8 V 18.2 C 11.5 19.3 12.5 20 13.5 19.5 L 21.5 13.3 C 22.3 12.7 22.3 11.3 21.5 10.7 Z" /></svg>
+            </button>
+        </div>
+        <button id="sidebarExpandBtn" class="sidebar-toggle-btn mini-expand-btn" title="Expand Sidebar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+        </button>
     </div>
-    
-    <!-- lyrics container that will be translated vertically -->
-    <div class="lyrics-viewport">
-        <div class="lyrics-container" id="lyricsContainer">
-            <!-- Lyrics will be injected here via javascript -->
+
+    <div class="app-container" id="appContainer">
+        <!-- SIDEBAR 1/3 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-bg-overlay"></div>
+
+            
+            <div class="sidebar-content">
+                <img id="albumArt" class="sidebar-album-art" src="" style="display: none;" />
+                
+                <div class="glass-controls-box">
+                    <div class="song-details-vertical">
+                        <div class="title" id="songTitle">Play some music...</div>
+                        <div class="artist" id="songArtist">Waiting for player</div>
+                    </div>
+                    <div class="progress-wrapper">
+                        <span class="time-current" id="timeCurrent">0:00</span>
+                        <div class="progress-container">
+                            <div class="progress-bar" id="progressBar"></div>
+                        </div>
+                        <span class="time-total" id="timeTotal">0:00</span>
+                    </div>
+                    
+                    <div class="media-controls">
+                        <button id="settingsBtn" class="icon-btn" title="Settings">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        </button>
+                        <button id="btnPrev" class="media-btn">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style="transform: rotate(180deg);"><path d="M4.5 4.5 C 3.5 4 2.5 4.7 2.5 5.8 V 18.2 C 2.5 19.3 3.5 20 4.5 19.5 L 12.5 13.3 C 13.3 12.7 13.3 11.3 12.5 10.7 Z" /><path d="M13.5 4.5 C 12.5 4 11.5 4.7 11.5 5.8 V 18.2 C 11.5 19.3 12.5 20 13.5 19.5 L 21.5 13.3 C 22.3 12.7 22.3 11.3 21.5 10.7 Z" /></svg>
+                        </button>
+                        <button id="btnPlayPause" class="media-btn play-btn">
+                            <svg id="iconPlay" viewBox="0 0 384 512" height="1em" xmlns="http://www.w3.org/2000/svg" fill="currentColor" style="display: none;"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"></path></svg>
+                            <svg id="iconPause" viewBox="0 0 320 512" height="1em" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M48 64C21.5 64 0 85.5 0 112V400c0 26.5 21.5 48 48 48H80c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H48zm192 0c-26.5 0-48 21.5-48 48V400c0 26.5 21.5 48 48 48h32c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H240z"></path></svg>
+                        </button>
+                        <button id="btnNext" class="media-btn">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M4.5 4.5 C 3.5 4 2.5 4.7 2.5 5.8 V 18.2 C 2.5 19.3 3.5 20 4.5 19.5 L 12.5 13.3 C 13.3 12.7 13.3 11.3 12.5 10.7 Z" /><path d="M13.5 4.5 C 12.5 4 11.5 4.7 11.5 5.8 V 18.2 C 11.5 19.3 12.5 20 13.5 19.5 L 21.5 13.3 C 22.3 12.7 22.3 11.3 21.5 10.7 Z" /></svg>
+                        </button>
+                        <button id="shareBtn" class="icon-btn" title="Share Lyrics">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN 2/3 -->
+        <main class="main-content" id="mainContent">
+            <!-- Sidebar Toggle Button (Collapse) -->
+            <button id="sidebarCollapseBtn" class="sidebar-toggle-btn collapse-btn chevron-btn" title="Collapse Sidebar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline class="arrow-ghost" points="15 18 9 12 15 6"></polyline>
+                    <polyline class="arrow-main" points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            
+            <div class="lyrics-viewport">
+                <div class="lyrics-container" id="lyricsContainer">
+                    <!-- Lyrics will be injected here via javascript -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="card-modal hidden">
+        <div class="card-modal-backdrop" id="settingsModalBackdrop"></div>
+        <div class="card-modal-inner settings-inner">
+            <h2 class="settings-title">Settings</h2>
+            <label class="glow-toggle-label settings-label">
+                <input type="checkbox" id="lyricParticlesToggle" checked>
+                <div class="checkbox-box">✓</div>
+                Lyric Particles
+            </label>
+            <label class="glow-toggle-label settings-label" style="margin-top: 10px;">
+                <input type="checkbox" id="bgParticlesToggle" checked>
+                <div class="checkbox-box">✓</div>
+                Background Particles
+            </label>
+            <div class="settings-label settings-segmented-row" style="margin-top: 10px;">
+                <span class="settings-segmented-title">Layout</span>
+                <div class="segmented-toggle" id="layoutSegmented" role="tablist">
+                    <button type="button" class="segmented-option active" data-layout="apple" role="tab">Apple Music</button>
+                    <button type="button" class="segmented-option" data-layout="spotify" role="tab">Spotify</button>
+                    <div class="segmented-thumb"></div>
+                </div>
+            </div>
+            <button id="settingsCloseBtn" class="card-back-btn" style="margin-top: 20px;">Close</button>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- ===== LYRIC SELECTOR OVERLAY ===== -->
+    <div id="selectorOverlay" class="selector-overlay hidden">
+        <div class="selector-header">
+            <button id="selectorClose" class="selector-close-btn">✕</button>
+            <div class="selector-title-block">
+                <div class="selector-title">Select lyrics</div>
+                <div class="selector-count" id="selectorCount">0 lines selected</div>
+            </div>
+        </div>
+        <div class="selector-list" id="selectorList"></div>
+        <div class="selector-footer">
+            <label class="glow-toggle-label">
+                <input type="checkbox" id="glowToggle" checked>
+                <div class="checkbox-box">✓</div>
+                Glowing lyrics
+            </label>
+            <button id="selectorContinue" class="selector-continue-btn" disabled>Continue</button>
+        </div>
+    </div>
+
+    <!-- ===== CARD PREVIEW MODAL ===== -->
+    <div id="cardModal" class="card-modal hidden">
+        <div class="card-modal-backdrop" id="cardModalBackdrop"></div>
+        <div class="card-modal-inner">
+            <!-- The actual downloadable card -->
+            <div id="lyricalCard" class="lyrical-card">
+                <div class="card-bg-blur" id="cardBgBlur"></div>
+                <div class="card-bg-overlay"></div>
+                <div class="card-content">
+                    <div class="card-header">
+                        <img id="cardAlbumArt" class="card-album-art" src="" />
+                        <div class="card-song-info">
+                            <div class="card-song-title" id="cardSongTitle"></div>
+                            <div class="card-song-artist" id="cardSongArtist"></div>
+                        </div>
+                    </div>
+                    <div class="card-lyrics" id="cardLyrics"></div>
+                    <div class="card-brand">Lyrical</div>
+                </div>
+            </div>
+            <div class="card-actions">
+                <button id="cardDownload" class="card-download-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Save Image
+                </button>
+                <button id="cardBack" class="card-back-btn">← Back</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="script.js?v=2"></script>
 </body>
 </html>
