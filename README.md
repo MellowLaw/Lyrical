@@ -14,7 +14,7 @@ Lyrical is a high-end Windows application that transforms your desktop into a be
 
 [**Download Latest Release**](https://github.com/YOUR_USERNAME/YOUR_REPO/releases) • [**Report Bug**](https://github.com/YOUR_USERNAME/YOUR_REPO/issues)
 
-<img src="demo.png" alt="Lyrical Demo" width="800" style="border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);">
+<img src="Images/demo.png" alt="Lyrical Demo" width="800" style="border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);">
 
 </div>
 

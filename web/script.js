@@ -88,7 +88,7 @@ function initParticles() {
 
 let lyricParticlesEnabled = true;
 let bgParticlesEnabled = true;
-let appleLayoutEnabled = true;
+let appleLayoutEnabled = false;
 
 try {
     const saved = localStorage.getItem('lyricalSettings');
@@ -161,6 +161,7 @@ let parsedLyrics = []; // Array of { time: seconds, text: "string" }
 let isPlaying = false;
 let currentPosition = 0; // In seconds
 let lastPollTime = Date.now();
+let rawLyrics = ""; // Track raw lyrics string to detect changes
 const container = document.getElementById('lyricsContainer');
 
 function parseLRC(lrcText) {
@@ -368,6 +369,7 @@ async function fetchCurrentSong() {
         const songId = `${data.title}-${data.artist}`;
         if (songId !== currentSongId) {
             currentSongId = songId;
+            rawLyrics = data.lyrics; // Reset raw lyrics for new song
 
             const albumArt = document.getElementById('albumArt');
             const miniAlbumArt = document.getElementById('miniAlbumArt');
@@ -455,7 +457,9 @@ async function fetchCurrentSong() {
             // Zero delay precise synchronization
             currentPosition = data.position;
             currentDuration = data.duration || 0;
-            if (data.lyrics && typeof data.lyrics === 'string') {
+            if (data.lyrics === "Loading...") {
+                parsedLyrics = [{ time: 0, text: "Fetching lyrics...", isHTML: false }];
+            } else if (data.lyrics && typeof data.lyrics === 'string') {
                 parsedLyrics = parseLRC(data.lyrics);
             } else {
                 parsedLyrics = [];
@@ -471,6 +475,19 @@ async function fetchCurrentSong() {
             currentDuration = data.duration || currentDuration;
             if (Math.abs(data.position - currentPosition) > 0.3) {
                 currentPosition = data.position;
+            }
+
+            // CHECK IF LYRICS ARRIVED (if they were loading previously)
+            if (data.lyrics !== rawLyrics) {
+                rawLyrics = data.lyrics;
+                if (data.lyrics === "Loading...") {
+                    parsedLyrics = [{ time: 0, text: "Fetching lyrics...", isHTML: false }];
+                } else if (data.lyrics) {
+                    parsedLyrics = parseLRC(data.lyrics);
+                } else {
+                    parsedLyrics = [];
+                }
+                renderLyrics();
             }
         }
     } catch (e) {

@@ -26,6 +26,28 @@ app = Flask(__name__, static_folder=resource_path('web'), static_url_path='')
 CORS(app, origins=['http://127.0.0.1:5000', 'http://localhost:5000'])
 logging.basicConfig(level=logging.INFO)
 
+# --- Persistent Cache Configuration ---
+CACHE_FILE = os.path.join(os.path.expanduser("~"), ".lyrical_cache.json")
+
+def load_cache():
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_cache(cache):
+    try:
+        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(cache, f, ensure_ascii=False, indent=2)
+    except:
+        pass
+
+import json
+lyrics_db = load_cache()
+
 # Global state to cache lyrics to avoid spamming the API
 current_song_state = {
     "title": "",
@@ -133,13 +155,38 @@ async def control_media(action):
         return False
 
 def fetch_lyrics(track_name, artist_name, album_name):
+    # Check persistent cache first
+    cache_key = f"{track_name.strip()}-{artist_name.strip()}".lower()
+    if cache_key in lyrics_db:
+        logging.info(f"Loaded lyrics from persistent cache: {track_name}")
+        return lyrics_db[cache_key]
+
     # Using lrclib.net because it's free and doesn't require API keys
     try:
         url = f"https://lrclib.net/api/get?track_name={urllib.parse.quote(track_name.strip())}&artist_name={urllib.parse.quote(artist_name.strip())}"
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json()
-            return data.get("syncedLyrics") or data.get("plainLyrics")
+            lyrics = data.get("syncedLyrics") or data.get("plainLyrics")
+            
+            # Save to cache if found
+            if lyrics:
+                lyrics_db[cache_key] = lyrics
+                save_cache(lyrics_db)
+            
+            return lyrics
+        elif response.status_code == 404:
+            # Try a search if direct get fails (sometimes metadata varies slightly)
+            search_url = f"https://lrclib.net/api/search?q={urllib.parse.quote(track_name.strip() + ' ' + artist_name.strip())}"
+            search_res = requests.get(search_url, timeout=5)
+            if search_res.status_code == 200:
+                results = search_res.json()
+                if results:
+                    lyrics = results[0].get("syncedLyrics") or results[0].get("plainLyrics")
+                    if lyrics:
+                        lyrics_db[cache_key] = lyrics
+                        save_cache(lyrics_db)
+                    return lyrics
     except Exception as e:
         logging.error(f"Failed to fetch lyrics: {e}")
     return None
@@ -161,12 +208,22 @@ def update_state(media_info):
             current_song_state['title'] = media_info['title']
             current_song_state['artist'] = media_info['artist']
             current_song_state['album'] = media_info['album']
+            current_song_state['lyrics'] = "Loading..." # Show loading state
         else:
             logging.info(f"Retrying lyrics fetch for: {media_info['title']}")
             
         current_song_state['last_fetch_time'] = time.time()
-        lyrics = fetch_lyrics(media_info['title'], media_info['artist'], media_info['album'])
-        current_song_state['lyrics'] = lyrics
+        
+        # Fetch in background to prevent UI lag
+        def fetch_bg(t, a, alb):
+            logging.info(f"Background fetch started for: {t}")
+            lyrics = fetch_lyrics(t, a, alb)
+            # Only update if the song hasn't changed while we were fetching
+            if current_song_state['title'] == t and current_song_state['artist'] == a:
+                current_song_state['lyrics'] = lyrics
+                logging.info(f"Successfully fetched lyrics for: {t}")
+
+        threading.Thread(target=fetch_bg, args=(media_info['title'], media_info['artist'], media_info['album']), daemon=True).start()
         
     current_song_state['position'] = media_info['position']
     current_song_state['duration'] = media_info['duration']
@@ -257,7 +314,8 @@ if __name__ == '__main__':
         'Lyrical', 
         'http://127.0.0.1:5000',
         width=1000, 
-        height=700,
+        height=720,
+        min_size=(850, 600), # Prevents UI from breaking on small screens
         background_color='#0d1b1a'
     )
     
