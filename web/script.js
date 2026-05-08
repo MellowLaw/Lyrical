@@ -39,13 +39,13 @@ class Particle {
     update() {
         // Phonk mode goes WILD
         let multiplier = window.isPhonkMode ? 4 : 1;
-        
+
         // Add some jitter for phonk
         if (window.isPhonkMode && !this.isEmitter) {
             this.x += (Math.random() - 0.5) * 5;
             this.y += (Math.random() - 0.5) * 5;
         }
-        
+
         this.x += this.speedX * multiplier;
         this.y += this.speedY * multiplier;
 
@@ -88,25 +88,23 @@ function initParticles() {
 
 let lyricParticlesEnabled = true;
 let bgParticlesEnabled = true;
-let appleLayoutEnabled = false;
+let appleLayoutEnabled = true;
 
 try {
     const saved = localStorage.getItem('lyricalSettings');
     if (saved) {
         const s = JSON.parse(saved);
         lyricParticlesEnabled = s.lyricParticlesEnabled !== undefined ? s.lyricParticlesEnabled : true;
-        bgParticlesEnabled    = s.bgParticlesEnabled    !== undefined ? s.bgParticlesEnabled    : true;
-        appleLayoutEnabled    = s.appleLayoutEnabled    !== undefined ? s.appleLayoutEnabled    : false;
+        bgParticlesEnabled = s.bgParticlesEnabled !== undefined ? s.bgParticlesEnabled : true;
+        appleLayoutEnabled = s.appleLayoutEnabled !== undefined ? s.appleLayoutEnabled : true;
         if (document.getElementById('lyricParticlesToggle')) document.getElementById('lyricParticlesToggle').checked = lyricParticlesEnabled;
-        if (document.getElementById('bgParticlesToggle'))    document.getElementById('bgParticlesToggle').checked    = bgParticlesEnabled;
+        if (document.getElementById('bgParticlesToggle')) document.getElementById('bgParticlesToggle').checked = bgParticlesEnabled;
 
         if (!appleLayoutEnabled) {
             document.body.classList.add('spotify-layout');
         }
     }
-    // Apply the mode immediately (syncs classes and toggle state)
-    applyLayoutMode(appleLayoutEnabled);
-} catch (e) {}
+} catch (e) { }
 
 function applyLayoutMode(isApple) {
     appleLayoutEnabled = isApple;
@@ -217,7 +215,7 @@ function renderLyrics() {
         const div = document.createElement('div');
         div.className = 'lyric-line';
         div.id = `line-${index}`;
-        
+
         if (line.isHTML) {
             div.innerHTML = line.text;
         } else {
@@ -364,7 +362,7 @@ async function fetchCurrentSong() {
 
         isPlaying = data.is_playing;
         lastPollTime = Date.now();
-        
+
         updatePlayPauseIcons();
 
         const songId = `${data.title}-${data.artist}`;
@@ -463,7 +461,7 @@ async function fetchCurrentSong() {
                 parsedLyrics = [];
             }
             renderLyrics();
-            
+
             // Auto update selector if it's currently open
             if (!selectorOverlay.classList.contains('hidden')) {
                 selectedLineIndices.clear();
@@ -497,17 +495,17 @@ function tick() {
         lastPollTime = now;
         currentPosition += diff;
         updateLyricsDisplay();
-        
+
         if (currentDuration > 0) {
             const pct = Math.min(100, (currentPosition / currentDuration) * 100);
             const progressBar = document.getElementById('progressBar');
             if (progressBar) {
                 progressBar.style.width = pct + '%';
             }
-            
+
             const timeCurrElem = document.getElementById('timeCurrent');
             if (timeCurrElem) timeCurrElem.innerText = formatTime(currentPosition);
-            
+
             const timeTotalElem = document.getElementById('timeTotal');
             if (timeTotalElem) timeTotalElem.innerText = formatTime(currentDuration);
         }
@@ -543,7 +541,7 @@ function updatePlayPauseIcons() {
         { play: document.getElementById('iconPlay'), pause: document.getElementById('iconPause') },
         { play: document.getElementById('miniIconPlay'), pause: document.getElementById('miniIconPause') }
     ];
-    
+
     pairs.forEach(pair => {
         if (pair.play && pair.pause) {
             if (isPlaying) {
@@ -561,7 +559,7 @@ async function controlMedia(action) {
     try {
         await fetch(`/control/${action}`, { method: 'POST' });
         setTimeout(fetchCurrentSong, 300); // Quick poll to update UI fast
-    } catch(e) {
+    } catch (e) {
         console.error("Media control failed", e);
     }
 }
@@ -775,7 +773,7 @@ async function buildCard() {
         cardLyricsEl.style.fontSize = '';
         cardLyricsEl.style.textShadow = wantGlow ? '0 0 20px rgba(255,255,255,0.35), 0 0 40px rgba(255,255,255,0.15)' : 'none';
     }
-    
+
     // Clear out any old inline flex/alignment styles from previous version
     cardLyricsEl.style.display = '';
     cardLyricsEl.style.alignItems = '';
@@ -826,7 +824,7 @@ cardDownload.addEventListener('click', async () => {
         const b64_data = canvas.toDataURL('image/png');
         const title = document.getElementById('cardSongTitle').textContent.replace(/[^a-z0-9]/gi, '_').toLowerCase();
         const filename = `lyrical_${title || 'card'}.png`;
-        
+
         // Send image data to the Python backend which opens a native Save As dialog
         const response = await fetch('/save-card', {
             method: 'POST',
