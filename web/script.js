@@ -88,7 +88,7 @@ function initParticles() {
 
 let lyricParticlesEnabled = true;
 let bgParticlesEnabled = true;
-let appleLayoutEnabled = false;
+let appleLayoutEnabled = true;
 
 try {
     const saved = localStorage.getItem('lyricalSettings');

@@ -164,7 +164,7 @@ def fetch_lyrics(track_name, artist_name, album_name):
     # Using lrclib.net because it's free and doesn't require API keys
     try:
         url = f"https://lrclib.net/api/get?track_name={urllib.parse.quote(track_name.strip())}&artist_name={urllib.parse.quote(artist_name.strip())}"
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=10)
         if response.status_code == 200:
             data = response.json()
             lyrics = data.get("syncedLyrics") or data.get("plainLyrics")
@@ -178,7 +178,7 @@ def fetch_lyrics(track_name, artist_name, album_name):
         elif response.status_code == 404:
             # Try a search if direct get fails (sometimes metadata varies slightly)
             search_url = f"https://lrclib.net/api/search?q={urllib.parse.quote(track_name.strip() + ' ' + artist_name.strip())}"
-            search_res = requests.get(search_url, timeout=5)
+            search_res = requests.get(search_url, timeout=10)
             if search_res.status_code == 200:
                 results = search_res.json()
                 if results:
