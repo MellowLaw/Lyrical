@@ -352,6 +352,16 @@ async function fetchCurrentSong() {
         if (!res.ok) {
             document.getElementById('songTitle').innerText = "Not Playing";
             document.getElementById('songArtist').innerText = "Start music for lyrics...";
+            // Show default image when not playing
+            const albumArt = document.getElementById('albumArt');
+            const miniAlbumArt = document.getElementById('miniAlbumArt');
+            albumArt.src = 'Images/Default.png';
+            albumArt.style.display = 'block';
+            miniAlbumArt.src = 'Images/Default.png';
+            miniAlbumArt.style.display = 'block';
+            document.getElementById('blurredBackground').style.backgroundImage = "url('Images/Default.png')";
+            document.getElementById('sidebar').style.backgroundImage = "url('Images/Default.png')";
+            currentAccentColor = '180, 255, 230';
             return;
         }
         const data = await res.json();
@@ -452,8 +462,8 @@ async function fetchCurrentSong() {
                 albumArt.style.display = 'block';
                 miniAlbumArt.src = 'Images/Default.png';
                 miniAlbumArt.style.display = 'block';
-                document.getElementById('blurredBackground').style.backgroundImage = 'Images/Default.png';
-                document.getElementById('sidebar').style.backgroundImage = 'Images/Default.png';
+                document.getElementById('blurredBackground').style.backgroundImage = "url('Images/Default.png')";
+                document.getElementById('sidebar').style.backgroundImage = "url('Images/Default.png')";
                 currentAccentColor = '180, 255, 230'; // Default teal glint
             }
 
