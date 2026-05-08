@@ -362,6 +362,7 @@ async function fetchCurrentSong() {
             document.getElementById('blurredBackground').style.backgroundImage = "url('Images/Default.png')";
             document.getElementById('sidebar').style.backgroundImage = "url('Images/Default.png')";
             currentAccentColor = '180, 255, 230';
+            document.body.style.setProperty('--album-dominant-color', '41, 163, 99');
             return;
         }
         const data = await res.json();
@@ -455,6 +456,8 @@ async function fetchCurrentSong() {
                     let accentG = Math.min(255, Math.floor(dominantRGB.g * 1.5 + 40));
                     let accentB = Math.min(255, Math.floor(dominantRGB.b * 1.5 + 40));
                     currentAccentColor = `${accentR}, ${accentG}, ${accentB}`;
+                    // Set CSS variable for gradient blending
+                    document.body.style.setProperty('--album-dominant-color', `${dominantRGB.r}, ${dominantRGB.g}, ${dominantRGB.b}`);
                 };
             } else {
                 // No thumbnail — show the Lyrical logo as a fallback
@@ -465,6 +468,7 @@ async function fetchCurrentSong() {
                 document.getElementById('blurredBackground').style.backgroundImage = "url('Images/Default.png')";
                 document.getElementById('sidebar').style.backgroundImage = "url('Images/Default.png')";
                 currentAccentColor = '180, 255, 230'; // Default teal glint
+                document.body.style.setProperty('--album-dominant-color', '43, 163, 99');
             }
 
             // Zero delay precise synchronization

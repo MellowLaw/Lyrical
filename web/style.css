@@ -131,7 +131,7 @@ body.spotify-layout .sidebar-bg-overlay {
 
 /* Apple layout: gradient darkens the bottom so controls text is legible */
 body:not(.spotify-layout) .sidebar-bg-overlay {
-    background: linear-gradient(to bottom, transparent 40%, rgba(0, 0, 0, 0.75) 100%);
+    background: linear-gradient(to bottom, transparent 0%, rgba(41,163,99, 0.7) 100%);
 }
 
 .sidebar.collapsed {
