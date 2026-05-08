@@ -447,10 +447,13 @@ async function fetchCurrentSong() {
                     currentAccentColor = `${accentR}, ${accentG}, ${accentB}`;
                 };
             } else {
-                albumArt.style.display = 'none';
-                miniAlbumArt.style.display = 'none';
-                document.getElementById('blurredBackground').style.backgroundImage = 'none';
-                document.getElementById('sidebar').style.backgroundImage = 'none';
+                // No thumbnail — show the Lyrical logo as a fallback
+                albumArt.src = 'Images/Default.png';
+                albumArt.style.display = 'block';
+                miniAlbumArt.src = 'Images/Default.png';
+                miniAlbumArt.style.display = 'block';
+                document.getElementById('blurredBackground').style.backgroundImage = 'Images/Default.png';
+                document.getElementById('sidebar').style.backgroundImage = 'Images/Default.png';
                 currentAccentColor = '180, 255, 230'; // Default teal glint
             }
 
@@ -580,6 +583,17 @@ async function controlMedia(action) {
         console.error("Media control failed", e);
     }
 }
+
+// --- SPACEBAR SHORTCUT: Play / Pause ---
+document.addEventListener('keydown', (e) => {
+    // Only trigger if not typing in an input field
+    if (e.code === 'Space' && !e.target.matches('input, textarea, [contenteditable]')) {
+        e.preventDefault();
+        controlMedia(isPlaying ? 'pause' : 'play');
+        isPlaying = !isPlaying;
+        updatePlayPauseIcons();
+    }
+});
 
 document.getElementById('btnPrev')?.addEventListener('click', () => controlMedia('prev'));
 document.getElementById('btnNext')?.addEventListener('click', () => controlMedia('next'));
