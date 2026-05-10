@@ -95,8 +95,8 @@ body:not(.spotify-layout) .sidebar::before {
     background-image: inherit;
     background-size: cover;
     background-position: center;
-    /* Much darker so it reads as a tinted backdrop, not a repeated photo */
-    filter: blur(60px) saturate(180%) brightness(0.2);
+    /* Identical filter to .blurred-bg so sidebar is seamless with the main background */
+    filter: blur(80px) brightness(0.45) saturate(2.2);
     transform: scale(1.15);
     z-index: 0;
 }
@@ -131,7 +131,7 @@ body.spotify-layout .sidebar-bg-overlay {
 
 /* Apple layout: gradient darkens the bottom so controls text is legible */
 body:not(.spotify-layout) .sidebar-bg-overlay {
-    background: linear-gradient(to bottom, transparent 0%, rgba(var(--album-dominant-color, 180, 255, 230), 0.7) 100%);
+    background: linear-gradient(to bottom, transparent 0%, rgba(var(--album-dominant-color, 180, 255, 230), 0.35) 100%);
 }
 
 .sidebar.collapsed {
@@ -219,7 +219,7 @@ body:not(.spotify-layout) .sidebar-album-art {
 }
 
 .glass-controls-box {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(var(--album-dominant-color, 0, 0, 0), 0.2);
     backdrop-filter: blur(3px) saturate(130%);
     -webkit-backdrop-filter: blur(3px) saturate(130%);
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 
@@ -571,6 +571,26 @@ body:not(.spotify-layout) .media-controls {
     backface-visibility: hidden;
 }
 
+/* Centered status message (loading dots + label) — independent of scroll container */
+.lyrics-status {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    pointer-events: none;
+    z-index: 5;
+}
+.lyrics-status.hidden { display: none; }
+.lyrics-status-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.45);
+    letter-spacing: 0.5px;
+}
+
 /* Push lyrics inwards when sidebar is closed to keep them readable */
 .sidebar.collapsed + .main-content .lyrics-container {
     left: 20%;
@@ -738,12 +758,15 @@ body:not(.spotify-layout) .media-controls {
     opacity: 0.1;
     transition: opacity 0.5s ease;
 }
-.active .intro-dots span {
+.active .intro-dots span,
+.lyrics-status .intro-dots span {
     opacity: 0.3;
     animation: dotPulse 1.5s infinite ease-in-out;
 }
-.active .intro-dots span:nth-child(2) { animation-delay: 0.2s; }
-.active .intro-dots span:nth-child(3) { animation-delay: 0.4s; }
+.active .intro-dots span:nth-child(2),
+.lyrics-status .intro-dots span:nth-child(2) { animation-delay: 0.2s; }
+.active .intro-dots span:nth-child(3),
+.lyrics-status .intro-dots span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes dotPulse {
     0%, 100% { transform: scale(1); opacity: 0.3; }

@@ -7,6 +7,8 @@ import sys
 import threading
 import time
 import webbrowser
+import json
+import re
 import urllib.parse
 
 from flask import Flask, jsonify, request as flask_request
@@ -34,7 +36,7 @@ def load_cache():
         try:
             with open(CACHE_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
-        except:
+        except Exception:
             return {}
     return {}
 
@@ -42,10 +44,9 @@ def save_cache(cache):
     try:
         with open(CACHE_FILE, 'w', encoding='utf-8') as f:
             json.dump(cache, f, ensure_ascii=False, indent=2)
-    except:
+    except Exception:
         pass
 
-import json
 lyrics_db = load_cache()
 
 # Global state to cache lyrics to avoid spamming the API
@@ -154,6 +155,32 @@ async def control_media(action):
         logging.error(f"Error controlling media: {e}")
         return False
 
+def _normalize(s):
+    """Lowercase and strip punctuation for fuzzy comparison."""
+    return re.sub(r'[^\w\s]', '', s.lower()).strip()
+
+def _best_result(results, track_name, artist_name):
+    """Pick the best match from a list of lrclib results.
+    Priority: has syncedLyrics > title match > artist match.
+    Synced is weighted so heavily that it wins over plain even with a loose artist match."""
+    norm_title = _normalize(track_name)
+    norm_artist = _normalize(artist_name)
+
+    def score(r):
+        r_title = _normalize(r.get("trackName", ""))
+        r_artist = _normalize(r.get("artistName", ""))
+        has_synced = bool(r.get("syncedLyrics"))
+        title_exact = r_title == norm_title
+        # Partial artist match: handles "Ben&Ben" vs "Ben" or split names
+        artist_exact = r_artist == norm_artist
+        artist_partial = norm_artist in r_artist or r_artist in norm_artist
+        return (has_synced * 8) + (title_exact * 4) + (artist_exact * 2) + (artist_partial * 1)
+
+    results_with_lyrics = [r for r in results if r.get("syncedLyrics") or r.get("plainLyrics")]
+    if not results_with_lyrics:
+        return None
+    return max(results_with_lyrics, key=score)
+
 def fetch_lyrics(track_name, artist_name, album_name):
     # Check persistent cache first
     cache_key = f"{track_name.strip()}-{artist_name.strip()}".lower()
@@ -163,30 +190,61 @@ def fetch_lyrics(track_name, artist_name, album_name):
 
     # Using lrclib.net because it's free and doesn't require API keys
     try:
-        url = f"https://lrclib.net/api/get?track_name={urllib.parse.quote(track_name.strip())}&artist_name={urllib.parse.quote(artist_name.strip())}"
-        response = requests.get(url, timeout=10)
+        # --- Attempt 1: structured /api/get (exact lookup) ---
+        params = {
+            "track_name": track_name.strip(),
+            "artist_name": artist_name.strip(),
+        }
+        if album_name and album_name.strip():
+            params["album_name"] = album_name.strip()
+
+        response = requests.get("https://lrclib.net/api/get", params=params, timeout=10)
+        plain_fallback = None
         if response.status_code == 200:
             data = response.json()
-            lyrics = data.get("syncedLyrics") or data.get("plainLyrics")
-            
-            # Save to cache if found
-            if lyrics:
+            if data.get("syncedLyrics"):
+                lyrics = data["syncedLyrics"]
                 lyrics_db[cache_key] = lyrics
                 save_cache(lyrics_db)
-            
-            return lyrics
-        elif response.status_code == 404:
-            # Try a search if direct get fails (sometimes metadata varies slightly)
-            search_url = f"https://lrclib.net/api/search?q={urllib.parse.quote(track_name.strip() + ' ' + artist_name.strip())}"
-            search_res = requests.get(search_url, timeout=10)
-            if search_res.status_code == 200:
-                results = search_res.json()
-                if results:
-                    lyrics = results[0].get("syncedLyrics") or results[0].get("plainLyrics")
-                    if lyrics:
-                        lyrics_db[cache_key] = lyrics
-                        save_cache(lyrics_db)
-                    return lyrics
+                return lyrics
+            # Has only plain lyrics — save as fallback but keep trying for synced
+            plain_fallback = data.get("plainLyrics")
+
+        # --- Attempt 2: structured /api/search with track+artist fields ---
+        search_params = {
+            "track_name": track_name.strip(),
+            "artist_name": artist_name.strip(),
+        }
+        search_res = requests.get("https://lrclib.net/api/search", params=search_params, timeout=10)
+        if search_res.status_code == 200:
+            results = search_res.json()
+            best = _best_result(results, track_name, artist_name)
+            if best:
+                lyrics = best.get("syncedLyrics") or best.get("plainLyrics")
+                if lyrics:
+                    lyrics_db[cache_key] = lyrics
+                    save_cache(lyrics_db)
+                return lyrics
+
+        # --- Attempt 3: freetext /api/search as last resort ---
+        q_url = f"https://lrclib.net/api/search?q={urllib.parse.quote(track_name.strip() + ' ' + artist_name.strip())}"
+        q_res = requests.get(q_url, timeout=10)
+        if q_res.status_code == 200:
+            results = q_res.json()
+            best = _best_result(results, track_name, artist_name)
+            if best:
+                lyrics = best.get("syncedLyrics") or best.get("plainLyrics")
+                if lyrics:
+                    lyrics_db[cache_key] = lyrics
+                    save_cache(lyrics_db)
+                return lyrics
+
+        # --- Final fallback: plain lyrics from Attempt 1 if nothing synced found ---
+        if plain_fallback:
+            lyrics_db[cache_key] = plain_fallback
+            save_cache(lyrics_db)
+            return plain_fallback
+
     except Exception as e:
         logging.error(f"Failed to fetch lyrics: {e}")
     return None
@@ -197,6 +255,7 @@ def update_state(media_info):
     song_changed = (media_info['title'] != current_song_state['title'] or media_info['artist'] != current_song_state['artist'])
     
     # Retry if song changed OR if we have no lyrics and haven't tried in the last 15 seconds
+    # None = not yet fetched, "" = fetched but nothing found (stop retrying)
     should_fetch = song_changed or (
         current_song_state['lyrics'] is None and 
         (time.time() - current_song_state['last_fetch_time'] > 15)
@@ -220,8 +279,12 @@ def update_state(media_info):
             lyrics = fetch_lyrics(t, a, alb)
             # Only update if the song hasn't changed while we were fetching
             if current_song_state['title'] == t and current_song_state['artist'] == a:
-                current_song_state['lyrics'] = lyrics
-                logging.info(f"Successfully fetched lyrics for: {t}")
+                if lyrics:
+                    current_song_state['lyrics'] = lyrics
+                    logging.info(f"Successfully fetched lyrics for: {t}")
+                else:
+                    current_song_state['lyrics'] = ""  # Sentinel: tried, nothing found — stop retrying
+                    logging.info(f"No lyrics found for: {t}, stopping retries")
 
         threading.Thread(target=fetch_bg, args=(media_info['title'], media_info['artist'], media_info['album']), daemon=True).start()
         

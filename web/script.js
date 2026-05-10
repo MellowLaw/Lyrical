@@ -89,6 +89,7 @@ function initParticles() {
 let lyricParticlesEnabled = true;
 let bgParticlesEnabled = true;
 let appleLayoutEnabled = true;
+let lyricsMode = 'synced'; // 'synced' | 'plain' | 'loading'
 
 try {
     const saved = localStorage.getItem('lyricalSettings');
@@ -123,7 +124,7 @@ function animateParticles() {
 
     if (bgParticlesEnabled || lyricParticlesEnabled) {
         // Spawn text-linked particles from the active karaoke letter
-        if (lyricParticlesEnabled && activeKaraokeRect) {
+        if (lyricParticlesEnabled && activeKaraokeRect && lyricsMode === 'synced') {
             let px = activeKaraokeRect.left + (Math.random() * activeKaraokeRect.width);
             let py = activeKaraokeRect.top + (Math.random() * activeKaraokeRect.height);
             particlesArray.push(new Particle(true, px, py));
@@ -201,15 +202,37 @@ function parseLRC(lrcText) {
     return sorted;
 }
 
+const lyricsStatus = document.getElementById('lyricsStatus');
+const lyricsStatusLabel = document.getElementById('lyricsStatusLabel');
+
+function setStatusOverlay(visible, label) {
+    if (visible) {
+        lyricsStatus.classList.remove('hidden');
+        lyricsStatusLabel.textContent = label;
+        document.querySelector('#lyricsStatus .intro-dots').style.display = '';
+        container.style.transform = 'translateY(0px)';
+        container.innerHTML = '';
+    } else {
+        lyricsStatus.classList.add('hidden');
+        lyricsStatusLabel.textContent = '';
+    }
+}
+
 function renderLyrics() {
-    container.innerHTML = '';
-    if (parsedLyrics.length === 0) {
-        const div = document.createElement('div');
-        div.className = 'lyric-line';
-        div.innerText = "No synchronized lyrics found.";
-        container.appendChild(div);
+    if (lyricsMode === 'loading') {
+        setStatusOverlay(true, 'Looking for lyrics...');
         return;
     }
+    if (parsedLyrics.length === 0) {
+        lyricsStatus.classList.remove('hidden');
+        lyricsStatusLabel.textContent = 'No synchronized lyrics found';
+        document.querySelector('#lyricsStatus .intro-dots').style.display = 'none';
+        container.style.transform = 'translateY(0px)';
+        container.innerHTML = '';
+        return;
+    }
+    setStatusOverlay(false);
+    container.innerHTML = '';
 
     // Create an empty space at the end to make sure the last line scrolls up nicely
     parsedLyrics.forEach((line, index) => {
@@ -261,6 +284,9 @@ function updateLyricsDisplay() {
     }
 
     activeKaraokeRect = null; // reset global tracker
+
+    // No karaoke effects when lyrics aren't synced
+    if (lyricsMode !== 'synced') return;
 
     // Update classes
     for (let i = 0; i < lines.length; i++) {
@@ -475,10 +501,19 @@ async function fetchCurrentSong() {
             currentPosition = data.position;
             currentDuration = data.duration || 0;
             if (data.lyrics === "Loading...") {
-                parsedLyrics = [{ time: 0, text: "Fetching lyrics...", isHTML: false }];
+                lyricsMode = 'loading';
+                parsedLyrics = [];
             } else if (data.lyrics && typeof data.lyrics === 'string') {
-                parsedLyrics = parseLRC(data.lyrics);
+                const parsed = parseLRC(data.lyrics);
+                if (parsed.length > 0) {
+                    lyricsMode = 'synced';
+                    parsedLyrics = parsed;
+                } else {
+                    lyricsMode = 'plain';
+                    parsedLyrics = [];
+                }
             } else {
+                lyricsMode = 'plain';
                 parsedLyrics = [];
             }
             renderLyrics();
@@ -498,10 +533,19 @@ async function fetchCurrentSong() {
             if (data.lyrics !== rawLyrics) {
                 rawLyrics = data.lyrics;
                 if (data.lyrics === "Loading...") {
-                    parsedLyrics = [{ time: 0, text: "Fetching lyrics...", isHTML: false }];
+                    lyricsMode = 'loading';
+                    parsedLyrics = [];
                 } else if (data.lyrics) {
-                    parsedLyrics = parseLRC(data.lyrics);
+                    const parsed = parseLRC(data.lyrics);
+                    if (parsed.length > 0) {
+                        lyricsMode = 'synced';
+                        parsedLyrics = parsed;
+                    } else {
+                        lyricsMode = 'plain';
+                        parsedLyrics = [];
+                    }
                 } else {
+                    lyricsMode = 'plain';
                     parsedLyrics = [];
                 }
                 renderLyrics();
@@ -547,7 +591,7 @@ function tick() {
     requestAnimationFrame(tick);
 }
 
-setInterval(fetchCurrentSong, 1500); // Poll every 1.5 seconds
+setInterval(fetchCurrentSong, 800); // Poll every 0.8 seconds
 fetchCurrentSong(); // Initial call
 requestAnimationFrame(tick); // Start local extrapolation loop
 
