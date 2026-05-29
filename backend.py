@@ -49,6 +49,13 @@ def save_cache(cache):
 
 lyrics_db = load_cache()
 
+# Shared settings across main window and miniplayer
+global_settings = {
+    "bgParticlesEnabled": True,
+    "lyricParticlesEnabled": True,
+    "appleLayoutEnabled": True
+}
+
 # Global state to cache lyrics to avoid spamming the API
 current_song_state = {
     "title": "",
@@ -297,6 +304,16 @@ def update_state(media_info):
 def index():
     return app.send_static_file('index.html')
 
+@app.route('/settings', methods=['GET', 'POST'])
+def handle_settings():
+    global global_settings
+    if flask_request.method == 'POST':
+        data = flask_request.get_json() or {}
+        global_settings.update(data)
+        return jsonify({"success": True, "settings": global_settings})
+    else:
+        return jsonify(global_settings)
+
 @app.route('/current')
 def current_track():
     # Submit the async COM call to our persistent event loop thread
@@ -304,9 +321,12 @@ def current_track():
     
     if media_info:
         update_state(media_info)
-        return jsonify(current_song_state)
+        # Include shared backend settings in response
+        response_data = dict(current_song_state)
+        response_data['settings'] = global_settings
+        return jsonify(response_data)
     else:
-        return jsonify({"error": "No media currently playing"}), 404
+        return jsonify({"error": "No media currently playing", "settings": global_settings}), 404
 
 @app.route('/control/<action>', methods=['POST'])
 def control_action(action):
@@ -318,6 +338,34 @@ def control_action(action):
         return jsonify({"success": True})
     else:
         return jsonify({"error": "Failed to control media"}), 500
+
+
+@app.route('/miniplayer/toggle', methods=['POST'])
+def toggle_miniplayer():
+    """Toggle the always-on-top miniplayer window."""
+    data = flask_request.get_json() or {}
+    show = data.get('show', True)
+
+    create_func = app.config.get('create_miniplayer')
+    hide_func = app.config.get('hide_miniplayer')
+
+    if show and create_func:
+        create_func()
+        return jsonify({"success": True, "visible": True})
+    elif not show and hide_func:
+        hide_func()
+        return jsonify({"success": True, "visible": False})
+
+    return jsonify({"error": "Miniplayer functions not initialized"}), 500
+
+@app.route('/window/fullscreen', methods=['POST'])
+def toggle_fullscreen():
+    """Toggle fullscreen of the main window."""
+    global main_window
+    if main_window is not None:
+        main_window.toggle_fullscreen()
+        return jsonify({"success": True})
+    return jsonify({"error": "Main window not initialized"}), 500
 
 @app.route('/save-card', methods=['POST'])
 def save_card():
@@ -363,24 +411,84 @@ def save_card():
 
 if __name__ == '__main__':
     import webview
-    
+    from werkzeug.serving import make_server
+    import signal
+
+    # Global window references
+    main_window = None
+    miniplayer_window = None
+    http_server = None
+
     def start_server():
-        app.run(port=5000, debug=False, use_reloader=False)
-        
+        global http_server
+        http_server = make_server('127.0.0.1', 5000, app, threaded=True)
+        http_server.serve_forever()
+
+    def create_miniplayer_window():
+        """Create the always-on-top miniplayer window."""
+        global miniplayer_window
+        if miniplayer_window is not None:
+            miniplayer_window.show()
+            return miniplayer_window
+
+        miniplayer_window = webview.create_window(
+            'Lyrical Miniplayer',
+            'http://127.0.0.1:5000/miniplayer.html',
+            width=360,
+            height=360,
+            on_top=True,  # Always stays on top of other windows
+            resizable=False,  # Fixed size like a widget
+            frameless=True,  # No title bar - clean look
+            easy_drag=True,  # Drag by clicking anywhere
+            background_color='#0d1b1a'
+        )
+        return miniplayer_window
+
+    def hide_miniplayer():
+        """Hide the miniplayer window."""
+        global miniplayer_window
+        if miniplayer_window is not None:
+            miniplayer_window.hide()
+
+    # Store functions in app config for JS to call
+    app.config['create_miniplayer'] = create_miniplayer_window
+    app.config['hide_miniplayer'] = hide_miniplayer
+
     print("Starting Lyrics Backend Engine...")
-    
-    # Start the local server
-    threading.Thread(target=start_server, daemon=True).start()
-    
-    # Create the native desktop application window (NO js_api — avoids COM bridge crashes)
-    window = webview.create_window(
-        'Lyrical', 
+
+    # Start the local server as daemon thread
+    server_thread = threading.Thread(target=start_server, daemon=True)
+    server_thread.start()
+
+    # Wait a moment for server to start
+    import time
+    time.sleep(1)
+
+    # Create the main application window
+    main_window = webview.create_window(
+        'Lyrical',
         'http://127.0.0.1:5000',
-        width=1000, 
+        width=1000,
         height=720,
-        min_size=(850, 600), # Prevents UI from breaking on small screens
+        min_size=(850, 600),
         background_color='#0d1b1a'
     )
-    
-    webview.start()
+
+    def on_closed():
+        print("Main window closed. Force exiting process...")
+        os._exit(0)
+
+    main_window.events.closed += on_closed
+
+    try:
+        webview.start()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        # Shutdown the Flask server
+        if http_server:
+            http_server.shutdown()
+        # Force exit the entire process including all threads
+        print("Shutting down Lyrical...")
+        os._exit(0)
 

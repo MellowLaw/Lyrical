@@ -107,6 +107,20 @@ try {
     }
 } catch (e) { }
 
+async function saveSettings() {
+    const s = { lyricParticlesEnabled, bgParticlesEnabled, appleLayoutEnabled };
+    localStorage.setItem('lyricalSettings', JSON.stringify(s));
+    try {
+        await fetch('http://127.0.0.1:5000/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(s)
+        });
+    } catch (e) {
+        console.error('Failed to sync settings to backend:', e);
+    }
+}
+
 function applyLayoutMode(isApple) {
     appleLayoutEnabled = isApple;
     document.body.classList.toggle('spotify-layout', !isApple);
@@ -116,7 +130,7 @@ function applyLayoutMode(isApple) {
             btn.classList.toggle('active', btn.dataset.layout === (isApple ? 'apple' : 'spotify'));
         });
     }
-    localStorage.setItem('lyricalSettings', JSON.stringify({ lyricParticlesEnabled, bgParticlesEnabled, appleLayoutEnabled }));
+    saveSettings();
 }
 
 function animateParticles() {
@@ -369,6 +383,7 @@ function updateLyricsDisplay() {
     } else {
         container.style.transform = `translateY(0px)`;
     }
+
 }
 
 // Poll the backend
@@ -617,7 +632,8 @@ function updatePlayPauseIcons() {
 
     const pairs = [
         { play: document.getElementById('iconPlay'), pause: document.getElementById('iconPause') },
-        { play: document.getElementById('miniIconPlay'), pause: document.getElementById('miniIconPause') }
+        { play: document.getElementById('miniIconPlay'), pause: document.getElementById('miniIconPause') },
+        { play: document.getElementById('miniLyricsIconPlay'), pause: document.getElementById('miniLyricsIconPause') }
     ];
 
     pairs.forEach(pair => {
@@ -642,16 +658,29 @@ async function controlMedia(action) {
     }
 }
 
-// --- SPACEBAR SHORTCUT: Play / Pause ---
+// --- SHORTCUTS: Spacebar & F11 Fullscreen ---
 document.addEventListener('keydown', (e) => {
     // Only trigger if not typing in an input field
-    if (e.code === 'Space' && !e.target.matches('input, textarea, [contenteditable]')) {
+    if (e.target.matches('input, textarea, [contenteditable]')) return;
+
+    if (e.code === 'Space') {
         e.preventDefault();
         controlMedia(isPlaying ? 'pause' : 'play');
         isPlaying = !isPlaying;
         updatePlayPauseIcons();
+    } else if (e.key === 'F11') {
+        e.preventDefault();
+        toggleFullscreen();
     }
 });
+
+async function toggleFullscreen() {
+    try {
+        await fetch('http://127.0.0.1:5000/window/fullscreen', { method: 'POST' });
+    } catch (e) {
+        console.error('Failed to toggle fullscreen:', e);
+    }
+}
 
 document.getElementById('btnPrev')?.addEventListener('click', () => controlMedia('prev'));
 document.getElementById('btnNext')?.addEventListener('click', () => controlMedia('next'));
@@ -699,12 +728,12 @@ settingsModalBackdrop?.addEventListener('click', () => settingsModal.classList.a
 
 document.getElementById('lyricParticlesToggle')?.addEventListener('change', (e) => {
     lyricParticlesEnabled = e.target.checked;
-    localStorage.setItem('lyricalSettings', JSON.stringify({ lyricParticlesEnabled, bgParticlesEnabled, appleLayoutEnabled }));
+    saveSettings();
 });
 
 document.getElementById('bgParticlesToggle')?.addEventListener('change', (e) => {
     bgParticlesEnabled = e.target.checked;
-    localStorage.setItem('lyricalSettings', JSON.stringify({ lyricParticlesEnabled, bgParticlesEnabled, appleLayoutEnabled }));
+    saveSettings();
 });
 
 // Sync segmented toggle with current state on load
@@ -739,7 +768,7 @@ function buildSelectorList() {
     parsedLyrics.forEach((line, idx) => {
         const item = document.createElement('div');
         item.className = 'selector-lyric-item';
-        item.textContent = line.text;
+        item.textContent = line.isHTML ? '...' : line.text;
         item.dataset.idx = idx;
         item.id = `sel-item-${idx}`;
         item.addEventListener('click', () => {
@@ -849,7 +878,7 @@ async function buildCard() {
     cardLyricsEl.innerHTML = '';
     sortedIndices.forEach((idx) => {
         const line = document.createElement('div');
-        line.textContent = parsedLyrics[idx].text;
+        line.textContent = parsedLyrics[idx].isHTML ? '...' : parsedLyrics[idx].text;
         cardLyricsEl.appendChild(line);
     });
 
@@ -930,4 +959,43 @@ cardDownload.addEventListener('click', async () => {
 
     cardDownload.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save Image`;
 });
+
+// ===== FLOATING LYRICS MINIPLAYER - Separate Always-on-Top Window =====
+const miniplayerToggleBtn = document.getElementById('miniplayerToggleBtn');
+let isMiniplayerWindowOpen = false;
+
+// Toggle miniplayer window (separate always-on-top window)
+async function toggleMiniplayerWindow() {
+    if (!miniplayerToggleBtn) return;
+
+    isMiniplayerWindowOpen = !isMiniplayerWindowOpen;
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/miniplayer/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ show: isMiniplayerWindowOpen })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            if (isMiniplayerWindowOpen) {
+                miniplayerToggleBtn.classList.add('active');
+            } else {
+                miniplayerToggleBtn.classList.remove('active');
+            }
+        } else {
+            // Revert state on error
+            isMiniplayerWindowOpen = !isMiniplayerWindowOpen;
+            console.error('Failed to toggle miniplayer:', result.error);
+        }
+    } catch (e) {
+        // Revert state on error
+        isMiniplayerWindowOpen = !isMiniplayerWindowOpen;
+        console.error('Failed to toggle miniplayer window:', e);
+    }
+}
+
+// Toggle button event
+miniplayerToggleBtn?.addEventListener('click', toggleMiniplayerWindow);
 

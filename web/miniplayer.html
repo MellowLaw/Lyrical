@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lyrical Miniplayer</title>
+    <link rel="stylesheet" href="style.css?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* Miniplayer-specific overrides - 350x400 */
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background: #0d1b1a;
+        }
+
+        .miniplayer-root {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Blurred background */
+        .miniplayer-bg {
+            position: absolute;
+            inset: -20%;
+            width: 140%;
+            height: 140%;
+            background-size: cover;
+            background-position: center;
+            filter: blur(40px) brightness(0.5) saturate(2);
+            z-index: 0;
+            transition: background-image 0.8s ease-in-out;
+        }
+
+        /* Particle canvas */
+        .miniplayer-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.9;
+        }
+
+        /* Overlay for text readability */
+        .miniplayer-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom,
+                rgba(0, 0, 0, 0.2) 0%,
+                rgba(0, 0, 0, 0.1) 50%,
+                rgba(0, 0, 0, 0.3) 100%);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* Drag handle - bare icon, always visible */
+        .miniplayer-drag-handle {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: move;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: none;
+            background: transparent;
+            transition: color 0.2s;
+        }
+
+        .miniplayer-drag-handle:hover {
+            color: rgba(255, 255, 255, 1);
+        }
+
+        /* Close button - bare icon, hidden by default, shows on hover */
+        .miniplayer-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.25s ease, color 0.2s ease;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .miniplayer-root:hover .miniplayer-close {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .miniplayer-close:hover {
+            color: rgba(255, 255, 255, 1);
+        }
+
+        /* Lyrics viewport - centered like main window */
+        .miniplayer-viewport {
+            position: absolute;
+            inset: 50px 20px 50px;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .miniplayer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            gap: 8px;
+        }
+
+        /* Lyric lines - centered with karaoke animation like main window */
+        .miniplayer-line {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.4;
+            text-align: center;
+            width: 100%;
+            transition: all 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+            margin: 0;
+            display: block;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .miniplayer-line .lyric-letter {
+            display: inline;
+        }
+
+        .miniplayer-line.active {
+            color: rgba(255, 255, 255, 1);
+            opacity: 1;
+            font-size: 22px;
+        }
+
+        .miniplayer-line.active .lyric-letter {
+            color: #ffffff;
+        }
+
+        .miniplayer-line.past {
+            color: rgba(255, 255, 255, 0.25);
+            opacity: 0.5;
+            font-size: 17px;
+        }
+
+        .miniplayer-line.past .lyric-letter {
+            color: rgba(255, 255, 255, 0.25);
+        }
+
+        .miniplayer-line.future {
+            color: rgba(255, 255, 255, 0.4);
+            opacity: 0.7;
+            font-size: 17px;
+        }
+
+        .miniplayer-line.waiting {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        /* Controls - centered horizontally at bottom, fade in on hover */
+        .miniplayer-controls {
+            position: absolute;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 10px 18px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 999px;
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            pointer-events: none;
+        }
+
+        .miniplayer-root:hover .miniplayer-controls {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .miniplayer-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .miniplayer-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .miniplayer-btn.play-btn {
+            width: 34px;
+            height: 34px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .miniplayer-btn.play-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="miniplayer-root" id="miniplayerRoot">
+        <!-- Blurred album art background -->
+        <div class="miniplayer-bg" id="miniplayerBg"></div>
+        <!-- Particle canvas -->
+        <canvas class="miniplayer-canvas" id="miniplayerCanvas"></canvas>
+        <!-- Overlay -->
+        <div class="miniplayer-overlay"></div>
+
+        <!-- Drag handle -->
+        <div class="miniplayer-drag-handle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="9" cy="12" r="1"></circle>
+                <circle cx="9" cy="5" r="1"></circle>
+                <circle cx="9" cy="19" r="1"></circle>
+                <circle cx="15" cy="12" r="1"></circle>
+                <circle cx="15" cy="5" r="1"></circle>
+                <circle cx="15" cy="19" r="1"></circle>
+            </svg>
+        </div>
+
+        <!-- Close button -->
+        <button class="miniplayer-close" id="miniplayerClose" title="Close Miniplayer">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+
+        <!-- Lyrics viewport - no box/card, clean against background -->
+        <div class="miniplayer-viewport">
+            <div class="miniplayer-container" id="miniplayerContainer">
+                <div class="miniplayer-line waiting">Waiting for lyrics...</div>
+            </div>
+        </div>
+
+        <!-- Controls - centered on album area -->
+        <div class="miniplayer-controls">
+            <button id="btnPrev" class="miniplayer-btn">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="transform: rotate(180deg);">
+                    <path d="M4.5 4.5 C 3.5 4 2.5 4.7 2.5 5.8 V 18.2 C 2.5 19.3 3.5 20 4.5 19.5 L 12.5 13.3 C 13.3 12.7 13.3 11.3 12.5 10.7 Z" />
+                    <path d="M13.5 4.5 C 12.5 4 11.5 4.7 11.5 5.8 V 18.2 C 11.5 19.3 12.5 20 13.5 19.5 L 21.5 13.3 C 22.3 12.7 22.3 11.3 21.5 10.7 Z" />
+                </svg>
+            </button>
+            <button id="btnPlayPause" class="miniplayer-btn play-btn">
+                <svg id="iconPlay" viewBox="0 0 384 512" height="20" xmlns="http://www.w3.org/2000/svg" fill="currentColor" style="display: none;">
+                    <path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"></path>
+                </svg>
+                <svg id="iconPause" viewBox="0 0 320 512" height="20" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                    <path d="M48 64C21.5 64 0 85.5 0 112V400c0 26.5 21.5 48 48 48H80c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H48zm192 0c-26.5 0-48 21.5-48 48V400c0 26.5 21.5 48 48 48h32c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48H240z"></path>
+                </svg>
+            </button>
+            <button id="btnNext" class="miniplayer-btn">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                    <path d="M4.5 4.5 C 3.5 4 2.5 4.7 2.5 5.8 V 18.2 C 2.5 19.3 3.5 20 4.5 19.5 L 12.5 13.3 C 13.3 12.7 13.3 11.3 12.5 10.7 Z" />
+                    <path d="M13.5 4.5 C 12.5 4 11.5 4.7 11.5 5.8 V 18.2 C 11.5 19.3 12.5 20 13.5 19.5 L 21.5 13.3 C 22.3 12.7 22.3 11.3 21.5 10.7 Z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script src="miniplayer.js"></script>
+</body>
+</html>

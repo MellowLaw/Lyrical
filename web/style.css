@@ -272,8 +272,11 @@ body:not(.spotify-layout) .media-controls {
     font-weight: 800;
     margin-bottom: 4px;
     display: -webkit-box;
+    display: box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
+    box-orient: vertical;
     overflow: hidden;
 }
 
@@ -322,8 +325,9 @@ body:not(.spotify-layout) .media-controls {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
     width: 100%;
+    flex-wrap: nowrap;
 }
 
 .media-btn {
@@ -405,12 +409,19 @@ body:not(.spotify-layout) .media-controls {
     overflow: hidden;
 }
 
-.sidebar-toggle-btn {
+/* Top Left Controls - Sidebar toggle + Miniplayer toggle */
+.top-left-controls {
     position: absolute;
     top: 30px;
     left: 30px;
     z-index: 50;
-    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.top-control-btn {
+    background: rgba(255, 255, 255, 0.1);
     border: none;
     border-radius: 50%;
     width: 44px;
@@ -420,14 +431,45 @@ body:not(.spotify-layout) .media-controls {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s, transform 0.2s, opacity 0.2s;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.top-control-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.top-control-btn.active {
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.sidebar-toggle-btn {
+    position: relative;
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .sidebar-toggle-btn:hover {
     transform: scale(1.1);
 }
 
-.sidebar-toggle-btn.collapse-btn.hidden {
+.sidebar-toggle-btn.collapse-btn.hidden,
+.collapse-btn.hidden {
     opacity: 0;
     pointer-events: none;
 }
@@ -542,6 +584,265 @@ body:not(.spotify-layout) .media-controls {
     height: 40px;
     background: transparent;
     border: none;
+}
+
+/* ===== FLOATING LYRICS MINIPLAYER (Mini Main Window) ===== */
+.lyrics-miniplayer {
+    position: fixed;
+    top: 100px;
+    right: 40px;
+    width: 300px;
+    height: 300px;
+    border-radius: 20px;
+    z-index: 1000;
+    overflow: hidden;
+    cursor: default;
+    user-select: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    /* Glass border like main window */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.1),
+                inset 0 1px 1px rgba(255, 255, 255, 0.15),
+                inset 0 -1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.lyrics-miniplayer.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-20px);
+}
+
+/* Blurred background like main window */
+.lyrics-miniplayer-bg {
+    position: absolute;
+    inset: -20%;
+    width: 140%;
+    height: 140%;
+    background-size: cover;
+    background-position: center;
+    filter: blur(40px) brightness(0.5) saturate(2);
+    z-index: 0;
+    transition: background-image 0.8s ease-in-out;
+}
+
+/* Particle canvas overlay */
+.lyrics-miniplayer-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+/* Overlay for better text readability */
+.lyrics-miniplayer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom,
+        rgba(0, 0, 0, 0.2) 0%,
+        rgba(0, 0, 0, 0.1) 50%,
+        rgba(0, 0, 0, 0.3) 100%);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.lyrics-miniplayer-drag-handle {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: move;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.lyrics-miniplayer:hover .lyrics-miniplayer-drag-handle {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.lyrics-miniplayer-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    opacity: 0;
+    z-index: 10;
+}
+
+.lyrics-miniplayer:hover .lyrics-miniplayer-close {
+    opacity: 1;
+}
+
+.lyrics-miniplayer-close:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+/* Lyrics viewport - like main window */
+.lyrics-miniplayer-viewport {
+    position: absolute;
+    inset: 50px 20px 70px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    /* Soft fade edges */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+}
+
+.lyrics-miniplayer-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    gap: 8px;
+}
+
+/* Lyric lines - matching main window styles */
+.lyrics-miniplayer-line {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.3;
+    text-align: center;
+    max-width: 100%;
+    overflow: hidden;
+    display: -webkit-box;
+    display: box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    box-orient: vertical;
+    transition: all 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Active line - bright and glowing like main window */
+.lyrics-miniplayer-line.active {
+    color: rgba(255, 255, 255, 1);
+    opacity: 1;
+    transform: scale(1.05);
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+}
+
+/* Past line - dimmed */
+.lyrics-miniplayer-line.past {
+    color: rgba(255, 255, 255, 0.25);
+    opacity: 0.5;
+    transform: scale(0.92);
+}
+
+/* Future line - dimmed */
+.lyrics-miniplayer-line.future {
+    color: rgba(255, 255, 255, 0.4);
+    opacity: 0.7;
+    transform: scale(0.95);
+}
+
+/* Waiting state */
+.lyrics-miniplayer-line.waiting {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 16px;
+}
+
+/* Song info at bottom */
+.lyrics-miniplayer-song {
+    position: absolute;
+    bottom: 50px;
+    left: 20px;
+    right: 20px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 5;
+}
+
+/* Hover controls at bottom */
+.lyrics-miniplayer-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 999px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.lyrics-miniplayer:hover .lyrics-miniplayer-controls {
+    opacity: 1;
+}
+
+.lyrics-miniplayer-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.lyrics-miniplayer-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: scale(1.1);
+}
+
+.lyrics-miniplayer-btn.play-btn {
+    width: 38px;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.lyrics-miniplayer-btn.play-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.15);
+}
+
+/* Dragging state */
+.lyrics-miniplayer.dragging {
+    transition: none;
+    cursor: grabbing;
+}
+
+.lyrics-miniplayer.dragging .lyrics-miniplayer-drag-handle {
+    cursor: grabbing;
+    color: white;
 }
 
 /* Adjusted Lyrics Container inside Main */
